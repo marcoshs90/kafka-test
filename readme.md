@@ -1,0 +1,1 @@
+Primeira versão de sisteminha para estudar kafka.
