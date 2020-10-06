@@ -26,12 +26,11 @@ public class BatchSendMessageService {
         }
     }
 
-    public static void main(String[] args) throws SQLException {
+    public static void main(String[] args) throws SQLException, ExecutionException, InterruptedException {
         var batchService = new BatchSendMessageService();
         try (var service = new KafkaService<>(BatchSendMessageService.class.getSimpleName(),
                 "SEND_MESSAGE_TO_ALL_USERS",
                 batchService::parse,
-                String.class,
                 Map.of())) {
             service.run();
         }
@@ -46,7 +45,7 @@ public class BatchSendMessageService {
         System.out.println("Topic: " + message.getPayload());
 
         for(User user : getAllUsers()) {
-            userDispatcher.send(message.getPayload(),
+            userDispatcher.sendAsync(message.getPayload(),
                                 user.getUuid(),
                     message.getId().continueWith(BatchSendMessageService.class.getSimpleName()),
                     user);

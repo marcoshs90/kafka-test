@@ -2,7 +2,6 @@ package teste.ecommerce;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
-import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -26,12 +25,11 @@ public class CreateUsersService {
         }
     }
 
-    public static void main(String[] args) throws SQLException {
+    public static void main(String[] args) throws SQLException, ExecutionException, InterruptedException {
         var createUsersService = new CreateUsersService();
         try(var service = new KafkaService<Order>( CreateUsersService.class.getSimpleName(),
                 "ECOMMERCE_NEW_ORDER",
                 createUsersService::parse,
-                Order.class,
                 new HashMap<>())) {
             service.run();
         }

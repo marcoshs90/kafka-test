@@ -10,42 +10,52 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
 public class KafkaService<T> implements Closeable {
     private final KafkaConsumer<String, Message<T>> consumer;
     private final ConsumerFunction parse;
 
-    KafkaService(String groupId, String topic, ConsumerFunction parse, Class<T> type, Map<String, String> properties) {
-        this.parse = parse;
-        this.consumer = new KafkaConsumer<>(getProperties(groupId, type, properties));
+    KafkaService(String groupId, String topic, ConsumerFunction parse, Map<String, String> properties) {
+        this(parse, groupId, properties);
         consumer.subscribe(Collections.singletonList(topic));
     }
 
-    KafkaService(String groupId, Pattern topic, ConsumerFunction parse, Class<T> type, Map<String, String> properties) {
-        this.parse = parse;
-        this.consumer = new KafkaConsumer<>(getProperties(groupId, type, properties));
+    KafkaService(String groupId, Pattern topic, ConsumerFunction parse, Map<String, String> properties) {
+        this(parse, groupId, properties);
         consumer.subscribe(topic);
     }
 
-    void run() {
-        while(true){
-            var records = consumer.poll(Duration.ofMillis(100));
-            if(!records.isEmpty()) {
-                System.out.println("Encontrei " + records.count() + " registros");
-                for(var record : records) {
-                    try {
-                        parse.consume(record);
-                    } catch (Exception e) {
-                        // so far, just logging the exception for this message
-                        e.printStackTrace();
+    private KafkaService(ConsumerFunction<T> parse, String groupId, Map<String, String> properties) {
+        this.parse = parse;
+        this.consumer = new KafkaConsumer<>(getProperties(groupId, properties));
+    }
+
+    void run() throws ExecutionException, InterruptedException {
+        try(var deadLetter = new KafkaDispatcher<>()){
+            while (true) {
+                var records = consumer.poll(Duration.ofMillis(100));
+                if (!records.isEmpty()) {
+                    System.out.println("Encontrei " + records.count() + " registros");
+                    for (var record : records) {
+                        try {
+                            parse.consume(record);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            var message = record.value();
+                            deadLetter.send("ECOMMERCE_DEADLETTER",
+                                                   message.getId().toString(),
+                                                   message.getId().continueWith("DeadLetter"),
+                                                   new GsonSerializer<>().serialize("", message));
+                        }
                     }
                 }
             }
         }
     }
 
-    private Properties getProperties(String groupId, Class<T> type, Map<String, String> overrideProperties) {
+    private Properties getProperties(String groupId, Map<String, String> overrideProperties) {
         var properties = new Properties();
         properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:9092");
         properties.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
