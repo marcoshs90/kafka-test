@@ -1,6 +1,7 @@
 package teste.ecommerce;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import teste.ecommerce.consumer.KafkaService;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

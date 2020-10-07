@@ -1,9 +1,10 @@
 package teste.ecommerce;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import teste.ecommerce.consumer.KafkaService;
+import teste.ecommerce.dispatcher.KafkaDispatcher;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 

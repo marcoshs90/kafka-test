@@ -1,24 +1,30 @@
 package teste.ecommerce;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import teste.ecommerce.consumer.ConsumerService;
+import teste.ecommerce.consumer.KafkaService;
+import teste.ecommerce.consumer.ServiceRunner;
 
 import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 
-public class EmailService {
+public class EmailService implements ConsumerService<String> {
 
-    public static void main(String[] args) throws ExecutionException, InterruptedException {
-        var emailService = new EmailService();
-        try(var service = new KafkaService( EmailService.class.getSimpleName(),
-                "ECOMMERCE_SEND_EMAIL",
-                emailService::parse,
-                new HashMap<>())) {
-            service.run();
-        }
+    public static void main(String[] args) {
+        new ServiceRunner(EmailService::new).start(5);
     }
 
-    private void parse(ConsumerRecord<String, Message<String>> record){
-        System.out.println("Send Email");
+    public String getConsumerGroup() {
+        return EmailService.class.getSimpleName();
+    }
+
+    public String getTopic() {
+        return "ECOMMERCE_SEND_EMAIL";
+    }
+
+    public void parse(ConsumerRecord<String, Message<String>> record) {
+        System.out.println("------------------------------------------");
+        System.out.println("Send email");
         System.out.println(record.key());
         System.out.println(record.value());
         System.out.println(record.partition());
@@ -28,6 +34,7 @@ public class EmailService {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-        System.out.println("Email Sended");
+        System.out.println("Email sent");
     }
+
 }
